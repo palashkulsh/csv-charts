@@ -98,20 +98,23 @@ var app = new Vue({
       const selectedFile = document.getElementById('myfile').files[0];
       console.log(selectedFile.name);
       this.fileName = selectedFile.name;
+
       Papa.parse(selectedFile, {
         skipEmptyLines: true,
         preview: readRange.numRows > 0 ? readRange.numRows : 0,
+        header: true,
         complete: (results) => {
-          console.log('Finished:', results.data);
+          console.log('Finished with headers:', results.data);
           this.raw = results.data;
-          this.limitColumns(readRange.numCols > 0 ? readRange.numCols : 0);
+          // this.limitColumns(readRange.numCols > 0 ? readRange.numCols : 0);
           this.header = Array.from(this.raw[0]); // problem: duplicated / null headers
           this.header.shift();
-          this.refreshPreview();
+          //this.refreshPreview();
           this.completed = true;
           console.log(this.completed);
         }
       });
+
     },
     
     /**
@@ -128,130 +131,82 @@ var app = new Vue({
       if (this.largeFileMode && !force) return;
 
       console.log('Trying to render!');
-      let transformed = this.transform();
-      console.log(transformed)
-      let datasets = [];
-      transformed.series.map( (series) => {
-        datasets.push({
-          label: series.seriesName,
-          lineTension: (this.activeChartDefinition.curve && this.chartOption_curve) ? 0.4 : 0,
-          fill: this.chartOption_fill,
-          data: series.data
-        })
-      });
-
       this.rendered = true;
 
       // Graph!!
       let ctx = document.getElementById('csv-chart').getContext('2d');
+
       
       if (this.chart instanceof Chart) this.chart.destroy();
       
-      let chartConfig = {
-      type: this.chartType.toLowerCase(),
-      
-      data: {
-        labels: transformed.xaxis,
-        datasets: datasets
-      },
-      
-      options: { // Should check whether options are valid before using
-        title: {
-          display: this.chartOption_chartTitle,
-          fontSize: 16,
-          text: this.chartOption_chartTitleText
-        },
-        scales: (this.activeChartDefinition.hasYAxis) ? {
-          xAxes: [{
-            scaleLabel: {
-              display: this.chartOption_xAxisLabel,
-              labelString: this.chartOption_xAxisLabelText
-            },
-            stacked: this.activeChartDefinition.stackable && this.chartOption_stack
-          }],
-          yAxes: [{
-            scaleLabel: {
-              display: this.chartOption_yAxisLabel,
-              labelString: this.chartOption_yAxisLabelText
-            },
-            stacked: this.activeChartDefinition.stackable && this.chartOption_stack,
-            ticks: {
-              beginAtZero: this.chartOption_beginAtZero
-            }
-          }]
-        } : null,
-        plugins: {
-          colorschemes: {
-            scheme: 'tableau.Classic20'
-          },
-          zoom: {
-            pan: {
-              enabled: (this.activeChartDefinition.hasYAxis && (this.zoomX || this.zoomY)),
-              mode: '' + (this.zoomX ? 'x' : '') + (this.zoomY ? 'y' : '')
-            },
-            zoom: {
-              enabled: (this.activeChartDefinition.hasYAxis && (this.zoomX || this.zoomY)),
-              mode: '' + (this.zoomX ? 'x' : '') + (this.zoomY ? 'y' : '')
-            }
-          }
-        }
+      if (refreshHtml) {
+        this.chartId = Math.floor(Math.random() * 10000);
+        this.html = JSON.stringify(chartConfig);
       }
-    }
+      this.chart = new Chart(ctx, this.getTotalByDateChartConfig());
+      new Chart( document.getElementById('csv-chart-by-risk').getContext('2d'), this.getRiskWisePincodesChartConfig());
+    },
 
-    if (refreshHtml) {
-      this.chartId = Math.floor(Math.random() * 10000);
-      this.html = JSON.stringify(chartConfig);
-    }
-    this.chart = new Chart(ctx, chartConfig);
+    getRiskWisePincodesChartConfig() {
+      let res= alasql("select count(1) as y,[Shipping Zip] as x from ? where [Risk Level]='High' group by [Shipping Zip] order by count(1) desc limit 5",[this.raw])
+      console.log(res)
+      let chartConfig = {
+        type: 'bar',
+        options: {
+          scales: {
+            yAxes: [{
+              ticks: {
+                beginAtZero: true
+              }
+            }]
+          }
+        },
+        data: {
+          labels: _.map(res, (el)=> el.x),
+          datasets: [{
+            label: 'Total',
+            data: _.map(res,(el)=>el.y),
+            type: 'bar'
+          }],
+        }
+      };
+      console.log(chartConfig)
+      return chartConfig;
       
     },
     
     /**
      * Prepares selected data series for render.
      */
-    transform() {
-      let xaxis = [];
-      const xaxisIndex = 0;
-      for (let row of this.raw) {
-        xaxis.push(row[xaxisIndex]);
+    getTotalByDateChartConfig() {
+      
+      alasql.fn.startOfDay=function(datestr){
+        if(!datestr){
+          return null
+        }
+        let d= new moment(datestr).startOf('day')
+        return d.format('YYYY-MM-DD')
       }
-      xaxis.shift();
-      console.log(`Horizontal axis: ${xaxis}`);
-      
-      let series = [];
-      /* series is an array storing the data series to be rendered.
-       * Each element of an array is an object: { seriesName: 'SERIES NAME', data: [ numbers of the series ] }
-       */
-      let seriesIndex = [];
-      
-      // Find indices from series name, store them into seriesIndex[]
-      if (Array.isArray(this.selected))
-        this.selected.map( (seriesName) => seriesIndex.push(this.header.indexOf(seriesName) + 1));
-        // +1? this.header has the first element stripped. As we will use this index to retrieve the data in this.raw, we need to add back 1.
-      else
-        seriesIndex.push(this.header.indexOf(this.selected) + 1);
-      
-      // Extract data from raw, store them into series[]
-      seriesIndex.map ( (seriesI) => {
-        series.push({ seriesName: this.header[seriesI - 1], data: [] }); // -1 to retrieve series name from this.header
-        if (!this.activeChartDefinition.scatterTransform) {
-          // Extract data for general charts
-          this.raw.map( (row) => {
-            series[series.length - 1].data.push(row[seriesI]);
-          })
+      let res= alasql("select sum(Total::NUMBER) as y,startOfDay([Created at]) as t from ? group by startOfDay([Created at])",[this.raw])
+      let chartConfig = {
+        type: 'line',
+        data: {
+          datasets: [{
+            label: 'Total',
+            data: res
+          }],
+        },
+        options: {
+          scales: {
+            xAxes: [{
+              type: 'time',
+              distribution: 'series'
+            }]
+          }
         }
-        else {
-          // Extract data for scatter charts
-          this.raw.map( (row, i) => {
-            series[series.length - 1].data.push({ x: xaxis[i - 1], y: row[seriesI] })
-          })
-        }
-        series[series.length - 1].data.shift();
-      } );
+      };
       
-      console.log(series);
-      
-      return { xaxis, series };
+      return chartConfig;
     },
     
     /**
