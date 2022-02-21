@@ -164,7 +164,7 @@ var app = new Vue({
         data: {
           labels: _.map(res, (el)=> el.x),
           datasets: [{
-            label: 'Total',
+            label: 'Highest Risk count pincodes',
             data: _.map(res,(el)=>el.y),
             type: 'bar'
           }],
@@ -192,7 +192,7 @@ var app = new Vue({
         type: 'line',
         data: {
           datasets: [{
-            label: 'Total',
+            label: 'Sum of Total by day',
             data: res
           }],
         },
