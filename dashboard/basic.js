@@ -215,6 +215,7 @@ var app = new Vue({
       // then graph is not rendered in first call to render function
       // then user has to click make dashboard 2 times for map to render
       this.$nextTick(() => this.getPincodeWiseMap(document.getElementById('csv-chart-total-by-pincode'),this.map_data, this.map_layout))
+      this.$nextTick(() => this.getPincodeWiseRiskMap(document.getElementById('csv-chart-risk-by-pincode'),this.map_data, this.map_layout))
     },
 
     getPincodeWiseMap(divObject, map_data, map_layout){
@@ -248,6 +249,27 @@ var app = new Vue({
           default:
             map_data[0].marker.color.push("black");            
           }
+        }
+      })
+      console.log("called",divObject)
+      Plotly.react(divObject, map_data, map_layout);
+    },
+    
+    getPincodeWiseRiskMap(divObject, map_data, map_layout){
+      let res= alasql("select [Shipping Zip] as pincode,[Shipping Method] as paymode from ? where [Risk Level]='High'  ",[this.raw])
+      map_data[0].lon=[]
+      map_data[0].lat=[]
+      map_data[0].text=[]
+      map_data[0].marker.color=[]
+      map_data[0].hovertext=[]
+      let pincode=""
+      res.forEach((e)=>{
+        pincode= e['pincode'] && e['pincode'].replace(/'/,"").toString()
+        if(pincode && pindata && pindata[pincode] && pindata[pincode]['long'] && pindata[pincode].lat){
+          map_data[0].lon.push(pindata[pincode].long)
+          map_data[0].lat.push(pindata[pincode].lat)
+          map_data[0].hovertext.push(pindata[pincode].city+","+pindata[pincode].state+","+pindata[pincode].pincode)
+          map_data[0].marker.color.push("red");
         }
       })
       console.log("called",divObject)
