@@ -1,6 +1,68 @@
 "use strict";
 Vue.component('v-select', VueSelect.VueSelect);
 
+var data = [{
+    type: 'scattergeo',
+    mode: 'markers+text',
+    text: [
+        'Montreal', 'Toronto', 'Vancouver', 'Calgary', 'Edmonton',
+        'Ottawa', 'Halifax', 'Victoria', 'Winnepeg', 'Regina'
+    ],
+    lon: [
+        77.3134
+    ],
+    lat: [
+        28.9869
+    ],
+    marker: {
+        size: 7,
+        color: [
+            '#bebada', '#fdb462', '#fb8072', '#d9d9d9', '#bc80bd',
+            '#b3de69', '#8dd3c7', '#80b1d3', '#fccde5', '#ffffb3'
+        ],
+        line: {
+            width: 1
+        }
+    },
+    name: 'Paid Order distribution',
+    textposition: [
+    ],
+}];
+
+var layout = {
+    title: 'Canadian cities',
+    font: {
+        family: 'Droid Serif, serif',
+        size: 6
+    },
+    titlefont: {
+        size: 16
+    },
+  width: 800,
+  height: 900,
+    geo: {
+        scope: 'asia',
+        resolution: 150,
+        lonaxis: {
+          'range': [68.7,97.25]
+        },
+        lataxis: {
+          'range': [8.4,37.6]
+        },
+        showrivers: true,
+        rivercolor: '#fff',
+        showlakes: true,
+        lakecolor: '#fff',
+        showland: true,
+        landcolor: '#EAEAAE',
+        countrycolor: '#d3d3d3',
+        countrywidth: 3.5,
+        subunitcolor: '#d3d3d3'
+    }
+};
+
+
+
 const ChartDefinition = [
   {
     title: 'Bar',
@@ -74,6 +136,9 @@ var app = new Vue({
       // Zoom options
       zoomX: false,
       zoomY: false,
+
+      map_data: data,
+      map_layout: layout,
     }
   },
   methods: {
@@ -145,6 +210,44 @@ var app = new Vue({
       }
       this.chart = new Chart(ctx, this.getTotalByDateChartConfig());
       new Chart( document.getElementById('csv-chart-by-risk').getContext('2d'), this.getRiskWisePincodesChartConfig());
+      this.getPincodeWiseMap(this.map_data, this.map_layout)
+    },
+
+    getPincodeWiseMap(map_data, map_layout){
+      //pindata = require('./assets/pincode.json')
+      console.log('######',pindata['202001'].lat , pindata['202001'].lon)
+      let res= alasql("select [Shipping Zip] as pincode,[Shipping Method] as paymode from ? where [Fulfillment Status]='fulfilled'  ",[this.raw])
+      map_data[0].lon=[]
+      map_data[0].lat=[]
+      map_data[0].text=[]
+      map_data[0].marker.color=[]
+      map_data[0].hovertext=[]
+      let pincode=""
+      res.forEach((e)=>{
+        pincode= e['pincode'] && e['pincode'].replace(/'/,"").toString()
+        // console.log(pincode)
+        if(pincode && pindata && pindata[pincode] && pindata[pincode]['long'] && pindata[pincode].lat){
+          console.log("***********",pindata[pincode])
+          map_data[0].lon.push(pindata[pincode].long)
+          map_data[0].lat.push(pindata[pincode].lat)
+          map_data[0].hovertext.push(pindata[pincode].city+","+pindata[pincode].state+","+pindata[pincode].pincode)
+          switch(e['paymode']){
+          case 'Cash On Delivery':
+            map_data[0].marker.color.push("red");
+            break;
+          case 'Online Payment':
+            map_data[0].marker.color.push("green");
+            break;
+          case 'Standard':
+            map_data[0].marker.color.push("pink");
+            break;
+          default:
+            map_data[0].marker.color.push("black");            
+          }
+        }
+      })
+      // console.log(map_data)
+      Plotly.newPlot(document.getElementById('csv-chart-total-by-pincode'), map_data, map_layout);
     },
 
     getRiskWisePincodesChartConfig() {
@@ -187,7 +290,7 @@ var app = new Vue({
         let d= new moment(datestr).startOf('day')
         return d.format('YYYY-MM-DD')
       }
-      let res= alasql("select sum(Total::NUMBER) as y,startOfDay([Created at]) as t from ? group by startOfDay([Created at])",[this.raw])
+      let res= alasql("select sum(Total::NUMBER) as y,startOfDay([Created at]) as t from ? where [Financial Status]='paid' group by startOfDay([Created at])",[this.raw])
       let chartConfig = {
         type: 'line',
         data: {
@@ -331,6 +434,8 @@ function saveJpeg(){
   window.location.href = image;
 }
 
+
 $(function () {
   $('[data-toggle="tooltip"]').tooltip()
 })
+
