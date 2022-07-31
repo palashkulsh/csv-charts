@@ -7,10 +7,13 @@
     <title>CSV Charts</title>
 
     <!-- Chart.js scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
-    <script src="js/chartjs-plugin-colorschemes.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.bundle.js"></script>
+    <script src="./js/chartjs-plugin-colorschemes.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@0.7.7"></script>
+
+    <!-- plotly plotting -->
+    <script src='https://cdn.plot.ly/plotly-2.12.1.min.js'></script>
 
     <!-- Papaparse & Vue scripts -->
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.2.0/papaparse.js"></script>
@@ -18,12 +21,18 @@
     <script src="https://unpkg.com/vue-select@latest"></script>
     <link rel="stylesheet" href="https://unpkg.com/vue-select@latest/dist/vue-select.css">
 
+    <!-- lodash libray -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js" integrity="sha512-WFN04846sdKMIP5LKNphMaWzU7YpMyCU245etK3g/2ARYbPK9Ub18eG+ljU96qKRCWh+quCY7yefSmlkQw1ANQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alasql@1.7"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js" integrity="sha512-qTXRIMyZIFb8iQcfjXWCO8+M5Tbc38Qi5WzdPOYZHIlZpzBHG3L3by84BBBOiRGiEb7KKtAOAs5qYdUiZiQNNQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <!-- Bootstrap scripts -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
-    
+
+     <script type="text/javascript" src="assets/pincode.json"></script>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="./assets/css/styles.css">
 </head>
 
 <body>
@@ -51,6 +60,7 @@
                                     <label for="myfile">Select a CSV file:</label><br>
                                     <input type="file" id="myfile" name="myfile" class="file-select" accept="text/csv">
                                     <button @click="load()" class="btn btn-success btn-sm">Load</button>
+                                    <button @click="render()" class="btn btn-success btn-sm">Make Dashboard</button>
                                     <br><br>
                                     Get a sample CSV <a href="examples/sample.csv">here</a> or <a href="examples/scatter.csv">here for scatter diagram</a>
                                     <hr>
@@ -75,96 +85,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="card control">
-                        <div class="card-header clickable collapsed" role="tab" data-toggle="collapse" data-target="#accordion-1 .item-2">
-                            <h5 class="mb-0"><a data-toggle="collapse" aria-expanded="false" aria-controls="accordion-1 .item-2" href="#accordion-1 .item-2"><span class="mr-2">2</span>Chart Type</a></h5>
-                        </div>
-                        <div class="collapse item-2" role="tabpanel" data-parent="#accordion-1">
-                            <div class="card-body form-group">
-                                <label for="chartType">Select a chart type:</label>
-                                <select class="custom-select" v-model="chartType" @change="updateChartType()" id="chartType">
-                                    <option v-for="chartType in chartDefinition">{{ chartType.title }}</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card control">
-                        <div class="card-header clickable collapsed" role="tab" data-toggle="collapse" data-target="#accordion-1 .item-3">
-                            <h5 class="mb-0"><a data-toggle="collapse" aria-expanded="false" aria-controls="accordion-1 .item-3" href="#accordion-1 .item-3"><span class="mr-2">3</span>Data Options</a></h5>
-                        </div>
-                        <div class="collapse item-3" role="tabpanel" data-parent="#accordion-1">
-                            <div class="card-body form-group">
-                                <label for="chartType">Choose data series:</label>
-                                
-                                <select class="custom-select" v-if="!activeChartDefinition.multiSeries" v-model="selected" @change="render()" id="Series">
-                                    <option selected>Choose a series</option>
-                                    <option v-for="head in header">{{ head }}</option>
-                                </select>
-                                
-                                <div v-else class="row">
-                                    <div class="col-md-12">
-                                        <v-select multiple v-model="selected" :options="header" @input="render()" />
-                                    </div>
-                                    <div class="col mt-2">
-                                        <button @click="selected = Array.from(header); render()" class="btn btn-light-alt btn-sm">Select all</button>
-                                        <button @click="selected = []" class="btn btn-light-alt btn-sm">Clear selection</button>
-                                    </div>
-                                </div>
-                                
-                                <div><br>
-                                    Switch row / column:
-                                    <button @click="transpose()" class="btn btn-light-alt btn-sm" id="Transpose">Transpose</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card control">
-                        <div class="card-header clickable collapsed" role="tab" data-toggle="collapse" data-target="#accordion-1 .item-4">
-                            <h5 class="mb-0"><a data-toggle="collapse" aria-expanded="false" aria-controls="accordion-1 .item-4" href="#accordion-1 .item-4"><span class="mr-2">4</span>Chart Options</a></h5>
-                        </div>
-                        <div class="collapse item-4" role="tabpanel" data-parent="#accordion-1">
-                            <div class="card-body">
-                                <div>
-                                    <input type="checkbox" id="chartTitle" v-model="chartOption_chartTitle" @change="render()">
-                                    <label for="chartTitle">Display chart title: </label>
-                                    <input type="text" v-model="chartOption_chartTitleText" @blur="render()" />
-                                </div>
-        
-                                <div v-if="activeChartDefinition.hasYAxis">
-                                    <input type="checkbox" id="beginAtZero" v-model="chartOption_beginAtZero" @change="render()">
-                                    <label for="beginAtZero">Vertical axis should begin at zero</label>
-                                </div>
-                                
-                                <div v-if="activeChartDefinition.curve">                            
-                                    <input type="checkbox" id="curve" v-model="chartOption_curve" @change="render()">
-                                    <label for="curve">Smooth lines</label>
-                                </div>
-                                
-                                <div v-if="activeChartDefinition.fill">                            
-                                    <input type="checkbox" id="fill" v-model="chartOption_fill" @change="render()">
-                                    <label for="fill">Fill area under curve</label>
-                                </div>
-                                
-                                <div v-if="activeChartDefinition.stackable">                            
-                                    <input type="checkbox" id="stack" v-model="chartOption_stack" @change="render()">
-                                    <label for="stack">Stack series</label>
-                                </div>
-
-                                <div v-if="activeChartDefinition.hasYAxis">
-                                    <input type="checkbox" id="yAxisLabel" v-model="chartOption_yAxisLabel" @change="render()">
-                                    <label for="yAxisLabel">Display vertical axis label: </label>
-                                    <input type="text" v-model="chartOption_yAxisLabelText" @blur="render()" />
-                                </div>
-
-                                <div v-if="activeChartDefinition.hasYAxis">
-                                    <input type="checkbox" id="xAxisLabel" v-model="chartOption_xAxisLabel" @change="render()">
-                                    <label for="xAxisLabel">Display horizontal axis label: </label>
-                                    <input type="text" v-model="chartOption_xAxisLabelText" @blur="render()" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    </div>                    
                 </div>
             </div>
             <div class="col-md-8 csv-preview">
@@ -195,6 +116,9 @@
                             Choose a csv file and select data series.
                         </div>
                         <canvas id="csv-chart"></canvas>
+                        <canvas id="csv-chart-by-risk"></canvas>
+                        <div id="csv-chart-total-by-pincode"></div>
+                        <div id="csv-chart-risk-by-pincode"></div>
                         <div v-if="rendered">
                             <h5 class="export-title">
                                 <i class="fas fa-file-export"></i> Export Chart
