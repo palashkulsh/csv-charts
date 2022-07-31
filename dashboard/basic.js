@@ -210,10 +210,14 @@ var app = new Vue({
       }
       this.chart = new Chart(ctx, this.getTotalByDateChartConfig());
       new Chart( document.getElementById('csv-chart-by-risk').getContext('2d'), this.getRiskWisePincodesChartConfig());
-      this.getPincodeWiseMap(this.map_data, this.map_layout)
+
+      // if we dont call plotly graph in next tick
+      // then graph is not rendered in first call to render function
+      // then user has to click make dashboard 2 times for map to render
+      this.$nextTick(() => this.getPincodeWiseMap(document.getElementById('csv-chart-total-by-pincode'),this.map_data, this.map_layout))
     },
 
-    getPincodeWiseMap(map_data, map_layout){
+    getPincodeWiseMap(divObject, map_data, map_layout){
       //pindata = require('./assets/pincode.json')
       console.log('######',pindata['202001'].lat , pindata['202001'].lon)
       let res= alasql("select [Shipping Zip] as pincode,[Shipping Method] as paymode from ? where [Fulfillment Status]='fulfilled'  ",[this.raw])
@@ -246,8 +250,8 @@ var app = new Vue({
           }
         }
       })
-      // console.log(map_data)
-      Plotly.newPlot(document.getElementById('csv-chart-total-by-pincode'), map_data, map_layout);
+      console.log("called",divObject)
+      Plotly.react(divObject, map_data, map_layout);
     },
 
     getRiskWisePincodesChartConfig() {
