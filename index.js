@@ -2,63 +2,63 @@
 Vue.component('v-select', VueSelect.VueSelect);
 
 var data = [{
-    type: 'scattergeo',
-    mode: 'markers+text',
-    text: [
-        'Montreal', 'Toronto', 'Vancouver', 'Calgary', 'Edmonton',
-        'Ottawa', 'Halifax', 'Victoria', 'Winnepeg', 'Regina'
+  type: 'scattergeo',
+  mode: 'markers+text',
+  text: [
+    'Montreal', 'Toronto', 'Vancouver', 'Calgary', 'Edmonton',
+    'Ottawa', 'Halifax', 'Victoria', 'Winnepeg', 'Regina'
+  ],
+  lon: [
+    77.3134
+  ],
+  lat: [
+    28.9869
+  ],
+  marker: {
+    size: 7,
+    color: [
+      '#bebada', '#fdb462', '#fb8072', '#d9d9d9', '#bc80bd',
+      '#b3de69', '#8dd3c7', '#80b1d3', '#fccde5', '#ffffb3'
     ],
-    lon: [
-        77.3134
-    ],
-    lat: [
-        28.9869
-    ],
-    marker: {
-        size: 7,
-        color: [
-            '#bebada', '#fdb462', '#fb8072', '#d9d9d9', '#bc80bd',
-            '#b3de69', '#8dd3c7', '#80b1d3', '#fccde5', '#ffffb3'
-        ],
-        line: {
-            width: 1
-        }
-    },
-    name: 'Paid Order distribution',
-    textposition: [
-    ],
+    line: {
+      width: 1
+    }
+  },
+  name: 'Paid Order distribution',
+  textposition: [
+  ],
 }];
 
 var layout = {
-    title: 'Canadian cities',
-    font: {
-        family: 'Droid Serif, serif',
-        size: 6
-    },
-    titlefont: {
-        size: 16
-    },
+  title: 'Indian map',
+  font: {
+    family: 'Droid Serif, serif',
+    size: 6
+  },
+  titlefont: {
+    size: 16
+  },
   width: 800,
   height: 900,
-    geo: {
-        scope: 'asia',
-        resolution: 150,
-        lonaxis: {
-          'range': [68.7,97.25]
-        },
-        lataxis: {
-          'range': [8.4,37.6]
-        },
-        showrivers: true,
-        rivercolor: '#fff',
-        showlakes: true,
-        lakecolor: '#fff',
-        showland: true,
-        landcolor: '#EAEAAE',
-        countrycolor: '#d3d3d3',
-        countrywidth: 3.5,
-        subunitcolor: '#d3d3d3'
-    }
+  geo: {
+    scope: 'asia',
+    resolution: 150,
+    lonaxis: {
+      'range': [68.7,97.25]
+    },
+    lataxis: {
+      'range': [8.4,37.6]
+    },
+    showrivers: true,
+    rivercolor: '#fff',
+    showlakes: true,
+    lakecolor: '#fff',
+    showland: true,
+    landcolor: '#EAEAAE',
+    countrycolor: '#d3d3d3',
+    countrywidth: 3.5,
+    subunitcolor: '#d3d3d3'
+  }
 };
 
 
@@ -227,6 +227,7 @@ var app = new Vue({
       map_data[0].text=[]
       map_data[0].marker.color=[]
       map_data[0].hovertext=[]
+      map_layout.title = "Pincode wise fulfilled orders"
       let pincode=""
       res.forEach((e)=>{
         pincode= e['pincode'] && e['pincode'].replace(/'/,"").toString()
@@ -262,6 +263,7 @@ var app = new Vue({
       map_data[0].text=[]
       map_data[0].marker.color=[]
       map_data[0].hovertext=[]
+      map_layout.title = "pincode wise high risk customers"
       let pincode=""
       res.forEach((e)=>{
         pincode= e['pincode'] && e['pincode'].replace(/'/,"").toString()
